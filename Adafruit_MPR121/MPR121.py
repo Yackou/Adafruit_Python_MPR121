@@ -103,7 +103,7 @@ class MPR121(object):
         if c != 0x24:
            return False
         # Set threshold for touch and release to default values.
-        self.set_thresholds(12, 6)
+        self.set_thresholds(16, 8)
         # Configure baseline filtering control registers.
         self._i2c_retry(self._device.write8, MPR121_MHDR, 0x01)
         self._i2c_retry(self._device.write8, MPR121_NHDR, 0x01)
@@ -117,13 +117,22 @@ class MPR121(object):
         self._i2c_retry(self._device.write8, MPR121_NCLT, 0x00)
         self._i2c_retry(self._device.write8, MPR121_FDLT, 0x00)
         # Set other configuration registers.
-        self._i2c_retry(self._device.write8, MPR121_DEBOUNCE, 0)
-        self._i2c_retry(self._device.write8, MPR121_CONFIG1, 0x10) # default, 16uA charge current
-        self._i2c_retry(self._device.write8, MPR121_CONFIG2, 0x20) # 0.5uS encoding, 1ms period
+        self._i2c_retry(self._device.write8, MPR121_DEBOUNCE, 0x33)
+        self._i2c_retry(self._device.write8, MPR121_CONFIG1, 0x3f) # default, 63uA charge current
+        self._i2c_retry(self._device.write8, MPR121_CONFIG2, 0x3a) # 0.5uS encoding, 18 samples, 4ms period
+
+        #self.auto_config()
         # Enable all electrodes.
         self._i2c_retry(self._device.write8, MPR121_ECR, 0x8F) # start with first 5 bits of baseline tracking
         # All done, everything succeeded!
         return True
+
+    def auto_config(self):
+        self._i2c_retry(self._device.write8, MPR121_UPLIMIT, 0x9C)
+        self._i2c_retry(self._device.write8, MPR121_LOWLIMIT, 0x65)
+        self._i2c_retry(self._device.write8, MPR121_TARGETLIMIT, 0x8C)
+        self._i2c_retry(self._device.write8, MPR121_AUTOCONFIG0, 0x0B)
+        print("Auto configuration enabled.")
 
     def _i2c_retry(self, func, *params):
         # Run specified I2C request and ignore IOError 110 (timeout) up to
